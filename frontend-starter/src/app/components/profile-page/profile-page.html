@@ -8,6 +8,9 @@
     </p>
     <form [formGroup]="form" (ngSubmit)="save()">
       <label>Nouveau nom<input formControlName="name" /></label>
+      @if (form.controls.name.touched && form.controls.name.invalid) {
+        <p class="error">Le nom doit contenir au moins 2 caractères.</p>
+      }
       <button type="submit">Enregistrer</button>
     </form>
   }

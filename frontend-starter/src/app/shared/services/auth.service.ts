@@ -36,6 +36,20 @@ export class AuthService {
       .pipe(tap((user) => this.currentUser.set(user)));
   }
 
+  /**
+   * Après un F5, les signals repartent à zéro alors que le token est toujours
+   * dans localStorage : on recharge le profil pour repeupler currentUser.
+   * Un token expiré renvoie 401, géré par authInterceptor (déconnexion).
+   */
+  restoreSession(): void {
+    if (!this.token()) {
+      return;
+    }
+    this.profile().subscribe({
+      error: () => console.error('[AuthService] Session impossible à restaurer'),
+    });
+  }
+
   logout(): void {
     localStorage.removeItem('gpc_token');
     this.token.set(null);

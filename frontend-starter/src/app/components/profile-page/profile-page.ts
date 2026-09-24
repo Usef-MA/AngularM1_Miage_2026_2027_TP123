@@ -10,7 +10,7 @@ import { AuthService } from '../../shared/services/auth.service';
 export class ProfilePageComponent {
   readonly auth = inject(AuthService);
   readonly form = new FormGroup({
-    name: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+    name: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.minLength(2)] }),
   });
 
   load(): void {
@@ -24,6 +24,10 @@ export class ProfilePageComponent {
   }
 
   save(): void {
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
     this.auth.update(this.form.getRawValue().name).subscribe({
       next: (user) => console.debug('[ProfilePage] Profil enregistré', user.id),
       error: (error) => console.error('[ProfilePage] Enregistrement impossible', error),
