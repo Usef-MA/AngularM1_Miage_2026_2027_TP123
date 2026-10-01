@@ -1,1 +1,39 @@
 :host { display: block; }
+
+.help { display: block; margin-bottom: 0.8rem; color: #61756f; }
+.success { color: #1d755e; }
+
+/* Cards : une colonne sur mobile, plusieurs dès que la largeur le permet. */
+.track-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.8rem;
+  margin: 1rem 0;
+  padding: 0;
+  list-style: none;
+}
+
+.track-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.8rem;
+  padding: 1rem;
+  background: #f7faf9;
+  border: 1px solid #e1ebe7;
+  border-radius: 12px;
+}
+
+.track-card.playing { border-color: #1d755e; box-shadow: 0 0 0 2px #1d755e33; }
+
+.track-info { min-width: 0; }
+.track-info h3 { margin: 0 0 0.2rem; font-size: 1rem; overflow-wrap: anywhere; }
+.file-name { margin: 0 0 0.5rem; color: #61756f; font-size: 0.85rem; overflow-wrap: anywhere; }
+.meta { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0; color: #61756f; font-size: 0.8rem; }
+.badge { padding: 0 0.4rem; color: #123d32; background: #d6ebe3; border-radius: 4px; font-weight: 600; }
+
+.play { flex-shrink: 0; }
+.play:focus-visible, button:focus-visible { outline: 3px solid #123d32; outline-offset: 2px; }
+
+.empty { color: #61756f; }
+.now-playing { margin-bottom: 0.4rem; }

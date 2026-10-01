@@ -9,37 +9,85 @@
     <article class="card">
       <h2>Importer</h2>
       <label>Titre<input [formControl]="title" /></label>
-      <label>Fichier audio<input type="file" accept="audio/*" (change)="choose($event)" /></label>
-      <button type="button" (click)="upload()" [disabled]="!file">Envoyer</button>
+      <label>
+        Fichier audio
+        <input
+          #fileInput
+          type="file"
+          accept=".mp3,.wav,.ogg,.m4a,audio/mpeg,audio/wav,audio/ogg,audio/mp4,audio/x-m4a"
+          (change)="choose($event)"
+          [disabled]="uploading()"
+          aria-describedby="file-help"
+        />
+      </label>
+      <small id="file-help" class="help">MP3, WAV, OGG ou M4A — 25 Mo maximum.</small>
+
+      <button type="button" (click)="upload()" [disabled]="!file() || uploading()">
+        {{ uploading() ? 'Envoi en cours…' : 'Envoyer' }}
+      </button>
+
+      @if (uploadError()) {
+        <p class="error" role="alert">{{ uploadError() }}</p>
+      }
+      @if (uploadSuccess()) {
+        <p class="success" role="status">{{ uploadSuccess() }}</p>
+      }
     </article>
 
     <article class="card">
       <div class="row">
         <h2>Mes pistes</h2>
-        <button type="button" (click)="load()">Actualiser</button>
+        <button type="button" (click)="load()" [disabled]="loading()">Actualiser</button>
       </div>
+      @if (error()) {
+        <p class="error" role="alert">{{ error() }}</p>
+      }
       @if (loading()) {
-        <p>Chargement…</p>
+        <p aria-live="polite">Chargement…</p>
+      } @else {
+        <ul class="track-list">
+          @for (track of tracks(); track track.id) {
+            <li class="track-card" [class.playing]="currentTrack()?.id === track.id">
+              <div class="track-info">
+                <h3>{{ track.title }}</h3>
+                <p class="file-name">{{ track.originalName }}</p>
+                <p class="meta">
+                  <span class="badge">{{ format(track.mimeType) }}</span>
+                  <span>{{ formatSize(track.size) }}</span>
+                  <time [attr.datetime]="track.createdAt">{{ track.createdAt | date: 'dd/MM/yyyy HH:mm' }}</time>
+                </p>
+              </div>
+              <button
+                type="button"
+                class="play"
+                (click)="play(track)"
+                [disabled]="audioLoading()"
+                [attr.aria-label]="'Lire ' + track.title"
+              >▶</button>
+            </li>
+          } @empty {
+            <li class="empty">Aucune piste pour l'instant.</li>
+          }
+        </ul>
       }
-      @for (track of tracks(); track track.id) {
-        <div class="track">
-          <div>
-            <b>{{ track.title }}</b>
-            <small>{{ track.originalName }} · {{ track.size }} Ko</small>
-          </div>
-          <button type="button" (click)="play(track)" [attr.aria-label]="'Lire ' + track.title">▶</button>
-        </div>
-      } @empty {
-        <p>Aucune piste.</p>
-      }
-      <div class="pager">
-        <button type="button" (click)="go(page() - 1)" [disabled]="page() === 1">Préc.</button>
+      <nav class="pager" aria-label="Pagination des pistes">
+        <button type="button" (click)="go(page() - 1)" [disabled]="loading() || page() <= 1">Précédent</button>
         <span>Page {{ page() }} / {{ pages() }}</span>
-        <button type="button" (click)="go(page() + 1)" [disabled]="page() === pages()">Suiv.</button>
+        <button type="button" (click)="go(page() + 1)" [disabled]="loading() || page() >= pages()">Suivant</button>
+      </nav>
+
+      <div class="player" aria-live="polite">
+        @if (audioLoading()) {
+          <p>Chargement de l'audio…</p>
+        }
+        @if (audioError()) {
+          <p class="error" role="alert">{{ audioError() }}</p>
+        }
+        @if (audioUrl()) {
+          <p class="now-playing">En cours : <b>{{ currentTrack()?.title }}</b></p>
+          <audio [src]="audioUrl()" controls autoplay (error)="onAudioError()"></audio>
+        }
       </div>
-      @if (audioUrl()) {
-        <audio [src]="audioUrl()" controls autoplay></audio>
-      }
     </article>
   </div>
 </section>
