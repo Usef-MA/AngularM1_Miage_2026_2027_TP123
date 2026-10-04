@@ -32,7 +32,8 @@
 .meta { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0; color: #61756f; font-size: 0.8rem; }
 .badge { padding: 0 0.4rem; color: #123d32; background: #d6ebe3; border-radius: 4px; font-weight: 600; }
 
-.play { flex-shrink: 0; }
+.actions { display: flex; flex-direction: column; gap: 0.4rem; flex-shrink: 0; }
+.delete { background: #a33; }
 .play:focus-visible, button:focus-visible { outline: 3px solid #123d32; outline-offset: 2px; }
 
 .empty { color: #61756f; }

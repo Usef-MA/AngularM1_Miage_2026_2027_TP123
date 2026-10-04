@@ -57,13 +57,22 @@
                   <time [attr.datetime]="track.createdAt">{{ track.createdAt | date: 'dd/MM/yyyy HH:mm' }}</time>
                 </p>
               </div>
-              <button
-                type="button"
-                class="play"
-                (click)="play(track)"
-                [disabled]="audioLoading()"
-                [attr.aria-label]="'Lire ' + track.title"
-              >▶</button>
+              <div class="actions">
+                <button
+                  type="button"
+                  class="play"
+                  (click)="play(track)"
+                  [disabled]="audioLoading() || deletingId() === track.id"
+                  [attr.aria-label]="'Lire ' + track.title"
+                >▶</button>
+                <button
+                  type="button"
+                  class="delete"
+                  (click)="remove(track)"
+                  [disabled]="deletingId() !== undefined"
+                  [attr.aria-label]="'Supprimer ' + track.title"
+                >{{ deletingId() === track.id ? '…' : '🗑' }}</button>
+              </div>
             </li>
           } @empty {
             <li class="empty">Aucune piste pour l'instant.</li>

@@ -26,4 +26,9 @@ export class TrackService {
       responseType: 'blob',
     });
   }
+
+  /** Le backend répond 204 (aucun corps) ou 404 si la piste n'existe plus ou n'est pas à nous. */
+  remove(id: string) {
+    return this.http.delete<void>(`/api/tracks/${id}`);
+  }
 }

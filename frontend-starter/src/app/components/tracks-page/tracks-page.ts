@@ -2,6 +2,7 @@ import { Component, ElementRef, inject, OnDestroy, signal, viewChild } from '@an
 import { DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { finalize } from 'rxjs';
 import { Track } from '../../shared/models/track.model';
 import { TrackService } from '../../shared/services/track.service';
@@ -24,6 +25,7 @@ const FORMATS: Record<string, string> = {
 })
 export class TracksPageComponent implements OnDestroy {
   private readonly service = inject(TrackService);
+  private readonly snackBar = inject(MatSnackBar);
   private readonly fileInput = viewChild<ElementRef<HTMLInputElement>>('fileInput');
 
   // Bibliothèque paginée (Mission 2)
@@ -47,6 +49,9 @@ export class TracksPageComponent implements OnDestroy {
   readonly audioLoading = signal(false);
   readonly audioError = signal('');
 
+  // Suppression (Mission 5) : id de la piste en cours de suppression.
+  readonly deletingId = signal<string | undefined>(undefined);
+
   constructor() {
     this.load();
   }
@@ -65,6 +70,12 @@ export class TracksPageComponent implements OnDestroy {
     this.service.list(this.page(), this.limit).subscribe({
       next: (response) => {
         console.debug('[TracksPage] Pistes chargées', response.items.length);
+        // Page vidée (dernière piste supprimée, ici ou dans un autre onglet) : on recule.
+        if (response.items.length === 0 && response.page > response.pages) {
+          this.page.set(response.pages);
+          this.load();
+          return;
+        }
         this.tracks.set(response.items);
         // Le serveur fait foi : il peut corriger une page hors bornes.
         this.page.set(response.page);
@@ -143,6 +154,37 @@ export class TracksPageComponent implements OnDestroy {
     });
   }
 
+  remove(track: Track): void {
+    // Une seule suppression à la fois : empêche les doubles clics.
+    if (this.deletingId()) return;
+    if (!confirm(`Supprimer « ${track.title} » ? Cette action est définitive.`)) return;
+
+    this.deletingId.set(track.id);
+    this.service
+      .remove(track.id)
+      .pipe(finalize(() => this.deletingId.set(undefined)))
+      .subscribe({
+        next: () => {
+          console.debug('[TracksPage] Piste supprimée', track.id);
+          this.stopIfPlaying(track);
+          this.notify(`« ${track.title} » a été supprimée.`);
+          this.load();
+        },
+        error: (error: HttpErrorResponse) => {
+          if (error.status === 404) {
+            // Déjà supprimée (autre onglet) ou pas à nous : cas prévu, la liste affichée est périmée.
+            console.warn('[TracksPage] Piste déjà supprimée ou inaccessible', track.id);
+            this.stopIfPlaying(track);
+            this.notify(`« ${track.title} » n'existe plus ou ne vous appartient pas.`);
+            this.load();
+            return;
+          }
+          console.error('[TracksPage] Suppression impossible', error);
+          this.notify(error.error?.message ?? `Impossible de supprimer « ${track.title} ».`);
+        },
+      });
+  }
+
   /** Erreur de décodage ou de lecture signalée par l'élément <audio>. */
   onAudioError(): void {
     console.error('[TracksPage] Le lecteur ne peut pas lire ce fichier');
@@ -177,6 +219,17 @@ export class TracksPageComponent implements OnDestroy {
     // Un <input type="file"> ne se vide que via sa propriété value.
     const input = this.fileInput()?.nativeElement;
     if (input) input.value = '';
+  }
+
+  private notify(message: string): void {
+    this.snackBar.open(message, 'OK', { duration: 4000 });
+  }
+
+  /** Coupe le lecteur si la piste supprimée était en cours d'écoute. */
+  private stopIfPlaying(track: Track): void {
+    if (this.currentTrack()?.id !== track.id) return;
+    this.revokeAudioUrl();
+    this.currentTrack.set(undefined);
   }
 
   private revokeAudioUrl(): void {
