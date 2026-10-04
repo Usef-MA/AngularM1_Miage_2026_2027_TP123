@@ -1,6 +1,6 @@
 # TP2 — Réponses et suivi
 
-## Où on en est (dernière mise à jour : 01/10/2026)
+## Où on en est (dernière mise à jour : 04/10/2026)
 
 - [x] Mission 2 — pagination serveur (`tracks-page.ts` / `.html`), testée : 2 pages, une requête par changement de page.
 - [x] Capture Network pagination : `screenshots/tp2/pagination-network.png`.
@@ -8,9 +8,8 @@
 - [x] Mission 3 — cards responsives (titre, nom, format, taille lisible, date, ▶). Testé OK.
 - [x] Mission 3 — lecteur : « En cours », erreurs audio, `revokeObjectURL` dans `ngOnDestroy`. Testé OK.
 - [x] Réponses aux questions mémoire / buffering / streaming (ci-dessous).
-- [ ] Captures : upload multipart (Payload `audio` + `title`) et lecture authentifiée (requête `audio`, header `Authorization`).
-- [ ] Preuve du `400` backend pour un fichier invalide via `curl` (le front bloque désormais avant l'envoi).
-- [ ] Fiche `PREPARATION_ORAL_TP2.md`.
+- [x] Captures : upload multipart (Payload `audio` + `title`) → `screenshots/tp2/upload-payload.png` ; lecture authentifiée (header `Authorization`) → `screenshots/tp2/audio-authorization.png`.
+- [x] Preuve du `400` backend via `curl` (fichier texte → 400, sans fichier → 400, sans token → 401) → `screenshots/tp2/curl-400.png`.
 - [ ] Facultatif : suppression, barre de progression, filtre, Angular Material Paginator.
 
 ## Flux Mission 2 — pagination
@@ -33,6 +32,27 @@ Chaque changement de page déclenche une nouvelle requête : on ne récupère ja
 | Contrôles backend | `backend/src/app.js` : `upload.single("audio")` (multer), `fileFilter` sur `allowed` (MP3/WAV/OGG/M4A), `limits.fileSize` = 25 Mo, `400` si pas de fichier ; erreurs converties en `400` par le gestionnaire central |
 
 La validation frontend évite une requête inutile et donne un message immédiat ; elle est contournable (curl, Postman, F12), donc la validation backend reste la seule garantie.
+
+### Preuve : le backend refuse seul un fichier invalide (sans passer par Angular)
+
+Capture : `screenshots/tp2/curl-400.png`.
+
+```bash
+# 1. Récupérer un token
+TOKEN=$(curl -s -X POST http://localhost:3000/api/auth/login -H "Content-Type: application/json" \
+  -d '{"email":"demo@example.com","password":"Demo1234!"}' | node -pe 'JSON.parse(require("fs").readFileSync(0)).token')
+
+# 2. Envoyer un fichier texte déguisé en audio
+echo "je ne suis pas un mp3" > faux.txt
+curl -i -X POST http://localhost:3000/api/tracks -H "Authorization: Bearer $TOKEN" \
+  -F "audio=@faux.txt;type=text/plain" -F "title=fichier pirate"
+```
+
+| Test | Réponse obtenue |
+|---|---|
+| Fichier `text/plain` | `400 Bad Request` — `{"message":"Format audio non accepté"}` (`fileFilter`) |
+| Aucun fichier | `400 Bad Request` — `{"message":"Fichier audio requis"}` |
+| Aucun token | `401 Unauthorized` — `{"message":"Authentification requise"}` |
 
 ## Flux Mission 3 — lecture
 
