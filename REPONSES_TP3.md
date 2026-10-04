@@ -8,7 +8,7 @@
 - [x] Capture upload avec progression : `screenshots/tp3/upload-progress.png` (19 %, requête `tracks` en `pending`, type `xhr`).
 - [x] Mission 7 — 7 tests frontend (Vitest, 4 fichiers `*.spec.ts`) + rapport des tests ci-dessous. `npm test` : 7 passed.
 - [x] `npm run build` : OK, sans erreur.
-- [ ] Rapport IA fondé sur `RAPPORT_IA_MODELE.md`.
+- [x] Rapport IA : `RAPPORT_IA_TP3.md` (structure de `RAPPORT_IA_MODELE.md`).
 
 ## Mission 5 — Suppression
 
