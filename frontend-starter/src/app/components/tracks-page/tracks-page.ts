@@ -1,6 +1,6 @@
-import { Component, ElementRef, inject, OnDestroy, signal, viewChild } from '@angular/core';
+import { Component, computed, ElementRef, inject, OnDestroy, signal, viewChild } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { HttpErrorResponse } from '@angular/common/http';
+import { HttpErrorResponse, HttpEventType } from '@angular/common/http';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { finalize } from 'rxjs';
@@ -9,6 +9,9 @@ import { TrackService } from '../../shared/services/track.service';
 
 /** Mêmes règles que le backend (app.js : `allowed` et `MAX_FILE_SIZE`). */
 const MAX_FILE_SIZE = 25 * 1024 * 1024;
+/** Les 4 états d'un upload demandés par la Mission 6. */
+type UploadState = 'idle' | 'uploading' | 'success' | 'error';
+
 const FORMATS: Record<string, string> = {
   'audio/mpeg': 'MP3',
   'audio/wav': 'WAV',
@@ -39,7 +42,9 @@ export class TracksPageComponent implements OnDestroy {
   // Upload (Mission 3)
   readonly title = new FormControl('', { nonNullable: true });
   readonly file = signal<File | undefined>(undefined);
-  readonly uploading = signal(false);
+  readonly uploadState = signal<UploadState>('idle');
+  readonly progress = signal(0);
+  readonly uploading = computed(() => this.uploadState() === 'uploading');
   readonly uploadError = signal('');
   readonly uploadSuccess = signal('');
 
@@ -59,6 +64,8 @@ export class TracksPageComponent implements OnDestroy {
   choose(event: Event): void {
     const file = (event.target as HTMLInputElement).files?.[0];
     this.file.set(file);
+    this.uploadState.set('idle');
+    this.progress.set(0);
     this.uploadSuccess.set('');
     this.uploadError.set(file ? this.validate(file) : '');
     console.debug('[TracksPage] Fichier sélectionné', file?.name);
@@ -108,23 +115,37 @@ export class TracksPageComponent implements OnDestroy {
       return;
     }
 
-    this.uploading.set(true);
+    const title = this.title.value.trim() || file.name;
+    this.uploadState.set('uploading');
+    this.progress.set(0);
     this.uploadError.set('');
     this.uploadSuccess.set('');
+    // Contrôles désactivés pendant l'envoi (le champ fichier l'est via le template).
+    this.title.disable();
 
     this.service
-      .upload(file, this.title.value.trim() || file.name)
-      .pipe(finalize(() => this.uploading.set(false)))
+      .upload(file, title)
+      .pipe(finalize(() => this.title.enable()))
       .subscribe({
-        next: (track) => {
-          console.debug('[TracksPage] Piste envoyée', track.id);
-          this.uploadSuccess.set(`« ${track.title} » a bien été ajoutée.`);
-          this.resetForm();
-          this.page.set(1);
-          this.load();
+        // Plusieurs événements arrivent pour UNE seule requête.
+        next: (event) => {
+          if (event.type === HttpEventType.UploadProgress) {
+            // total peut être inconnu : on ne calcule le pourcentage que s'il est fourni.
+            if (event.total) this.progress.set(Math.round((100 * event.loaded) / event.total));
+          } else if (event.type === HttpEventType.Response && event.body) {
+            const track = event.body;
+            console.debug('[TracksPage] Piste envoyée', track.id);
+            this.progress.set(100);
+            this.uploadState.set('success');
+            this.uploadSuccess.set(`« ${track.title} » a bien été ajoutée.`);
+            this.resetForm();
+            this.page.set(1);
+            this.load();
+          }
         },
         error: (error: { error?: { message?: string } }) => {
           console.error('[TracksPage] Envoi impossible', error);
+          this.uploadState.set('error');
           this.uploadError.set(error.error?.message ?? "L'envoi a échoué, réessayez.");
         },
       });

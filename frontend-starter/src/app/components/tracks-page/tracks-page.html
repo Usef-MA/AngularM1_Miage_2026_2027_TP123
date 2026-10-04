@@ -23,8 +23,15 @@
       <small id="file-help" class="help">MP3, WAV, OGG ou M4A — 25 Mo maximum.</small>
 
       <button type="button" (click)="upload()" [disabled]="!file() || uploading()">
-        {{ uploading() ? 'Envoi en cours…' : 'Envoyer' }}
+        {{ uploading() ? 'Envoi en cours… ' + progress() + ' %' : 'Envoyer' }}
       </button>
+
+      @if (uploading()) {
+        <div class="upload-progress">
+          <progress [value]="progress()" max="100" aria-label="Progression de l'envoi"></progress>
+          <span aria-live="polite">{{ progress() }} %</span>
+        </div>
+      }
 
       @if (uploadError()) {
         <p class="error" role="alert">{{ uploadError() }}</p>

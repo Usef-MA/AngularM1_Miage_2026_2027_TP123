@@ -3,6 +3,9 @@
 .help { display: block; margin-bottom: 0.8rem; color: #61756f; }
 .success { color: #1d755e; }
 
+.upload-progress { display: flex; align-items: center; gap: 0.6rem; margin-top: 0.8rem; }
+.upload-progress progress { flex: 1; height: 0.6rem; accent-color: #1d755e; }
+
 /* Cards : une colonne sur mobile, plusieurs dès que la largeur le permet. */
 .track-list {
   display: grid;
